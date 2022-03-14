@@ -30,7 +30,7 @@ JC_ON, JC_OFF, JC_MIND, JC_MINU, JC_MAXD, JC_MAXU, KC_TRNS, KC_TRNS, KC_TRNS, KC
 };
 
 uint32_t min_time = 2000;
-uint32_t max_time = 600000;
+uint32_t max_time = 5000;
 uint32_t step = 100;
 static uint16_t key_timer;
 uint32_t wait = 2000;
@@ -65,6 +65,24 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
         break;
 
+          case JC_MAXU:
+            if (record->event.pressed) {
+                max_time+=step*10;
+                SEND_STRING("JC_MAX: ");
+                SEND_STRING( itoa(max_time, val_to_write, 10));
+                SEND_STRING("    ");
+            }
+        break;
+
+        case JC_MAXD:
+            if (record->event.pressed && max_time>min_time+step*10) {
+                max_time-=step*10;
+                SEND_STRING("JC_MAX: ");
+                SEND_STRING( itoa(max_time, val_to_write, 10));
+                SEND_STRING("    ");
+            }
+        break;
+
         case JC_OFF:
         if(record-> event.pressed)
         {
@@ -87,12 +105,12 @@ void housekeeping_task_kb(void)
             key_timer = timer_read();
 
             uint32_t randomMod = (max_time-min_time);
-
-            #if defined(__AVR_ATmega32U4__)
-                wait = ((TCNT0 + TCNT1 + TCNT3 + TCNT4) % randomMod)+min_time;
-            #else
-                wait = (rand() % randomMod)+min_time;
-            #endif
+            wait = (rand() % randomMod)+min_time;
+            if(rand()%5==0)
+            {
+                register_code16(KC_BTN1);
+                unregister_code16(KC_BTN1);
+            }
         }
     }
 }
