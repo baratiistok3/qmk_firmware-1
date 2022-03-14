@@ -7,7 +7,12 @@
 enum custom_keycodes {
     LAYER0 = SAFE_RANGE,
     LAYER1,
-    MY_RAND,
+    JC_ON,
+    JC_OFF,
+    JC_MIND,
+    JC_MINU,
+    JC_MAXD,
+    JC_MAXU,
 };
 
  const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -20,20 +25,74 @@ enum custom_keycodes {
  KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_RALT, MO(1), KC_APP, KC_RCTL, KC_LEFT, KC_DOWN, KC_RGHT, KC_P0, KC_PDOT),
 
 [_LAYER1] = LAYOUT_all(RESET, KC_MPLY, KC_MSTP, KC_MPRV, KC_MNXT, KC_MUTE, KC_VOLD, KC_VOLU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-MY_RAND, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TGUI, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS) 
+JC_ON, JC_OFF, JC_MIND, JC_MINU, JC_MAXD, JC_MAXU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TGUI, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS) 
 
 };
 
+uint32_t min_time = 2000;
+uint32_t max_time = 600000;
+uint32_t step = 100;
+static uint16_t key_timer;
+uint32_t wait = 2000;
+char val_to_write[20];
+bool is_jcMacroActive = false;
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case MY_RAND:
+        case JC_ON:
             if (record->event.pressed) {
-                // when keycode myrand is pressed
-                SEND_STRING("QMK is the best thing ever!");
-            } else {
-                // when keycode QMKBEST is released
+                is_jcMacroActive = true;
+                key_timer = timer_read();
+                SEND_STRING("JC_ON");
             }
         break;
+
+        case JC_MINU:
+            if (record->event.pressed) {
+                min_time+=step;
+                SEND_STRING("JC_MIN: ");
+                SEND_STRING( itoa(min_time, val_to_write, 10));
+                SEND_STRING("    ");
+            }
+        break;
+
+        case JC_MIND:
+            if (record->event.pressed && min_time>step) {
+                min_time-=step;
+                SEND_STRING("JC_MIN: ");
+                SEND_STRING( itoa(min_time, val_to_write, 10));
+                SEND_STRING("    ");
+            }
+        break;
+
+        case JC_OFF:
+        if(record-> event.pressed)
+        {
+            is_jcMacroActive = false;
+            SEND_STRING("JC_OFF");
+        }
+        break;
     }
+   
     return true;
+}
+
+void housekeeping_task_kb(void)
+{
+     if(is_jcMacroActive)
+    {
+        if(timer_elapsed(key_timer) > wait)
+        {
+            tap_random_base64();
+            key_timer = timer_read();
+
+            uint32_t randomMod = (max_time-min_time);
+
+            #if defined(__AVR_ATmega32U4__)
+                wait = ((TCNT0 + TCNT1 + TCNT3 + TCNT4) % randomMod)+min_time;
+            #else
+                wait = (rand() % randomMod)+min_time;
+            #endif
+        }
+    }
 }
