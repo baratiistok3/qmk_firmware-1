@@ -34,3 +34,5 @@
 
 /* LED indicator pins */
 #define LED_NUM_LOCK_PIN    C8
+
+#define TAPPING_TERM 225
