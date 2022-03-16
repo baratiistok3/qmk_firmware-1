@@ -92,49 +92,59 @@ uint32_t wait = 2000;
 char val_to_write[20];
 bool is_jcMacroActive = false;
 
+
+bool isWaiting = false;
+bool isClicking = false;
+uint8_t rem_words = 10;
+uint8_t rem_letters = 20;
+uint32_t wait_time;
+static uint16_t timer;
+
+int randomRange(int lower, int upper)
+{
+    return (rand() % (upper - lower + 1)) + lower;
+}
+
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case JC_ON:
             if (record->event.pressed) {
                 is_jcMacroActive = true;
                 key_timer = timer_read();
-                SEND_STRING("JC_ON");
+                SEND_STRING("JON");
             }
         break;
 
         case JC_MINU:
             if (record->event.pressed) {
                 min_time+=step;
-                SEND_STRING("JC_MIN: ");
+                SEND_STRING("JMI: ");
                 SEND_STRING( itoa(min_time, val_to_write, 10));
-                SEND_STRING("    ");
             }
         break;
 
         case JC_MIND:
             if (record->event.pressed && min_time>step) {
                 min_time-=step;
-                SEND_STRING("JC_MIN: ");
+                SEND_STRING("JMI:");
                 SEND_STRING( itoa(min_time, val_to_write, 10));
-                SEND_STRING("    ");
             }
         break;
 
           case JC_MAXU:
             if (record->event.pressed) {
                 max_time+=step*10;
-                SEND_STRING("JC_MAX: ");
+                SEND_STRING("JMA:");
                 SEND_STRING( itoa(max_time, val_to_write, 10));
-                SEND_STRING("    ");
             }
         break;
 
         case JC_MAXD:
             if (record->event.pressed && max_time>min_time+step*10) {
                 max_time-=step*10;
-                SEND_STRING("JC_MAX: ");
+                SEND_STRING("JMA: ");
                 SEND_STRING( itoa(max_time, val_to_write, 10));
-                SEND_STRING("    ");
             }
         break;
 
@@ -142,7 +152,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         if(record-> event.pressed)
         {
             is_jcMacroActive = false;
-            SEND_STRING("JC_OFF");
+            SEND_STRING("JOFF");
         }
         break;
     }
@@ -154,18 +164,74 @@ void housekeeping_task_kb(void)
 {
      if(is_jcMacroActive)
     {
-        if(timer_elapsed(key_timer) > wait)
-        {
-            tap_random_base64();
-            key_timer = timer_read();
+        // if(timer_elapsed(key_timer) > wait)
+        // {
+        //     tap_random_base64();
+        //     key_timer = timer_read();
 
-            uint32_t randomMod = (max_time-min_time);
-            wait = (rand() % randomMod)+min_time;
-            if(rand()%5==0)
+        //     uint32_t randomMod = (max_time-min_time);
+        //     wait = (rand() % randomMod)+min_time;
+        //     if(rand()%5==0)
+        //     {
+        //         register_code16(KC_BTN1);
+        //         unregister_code16(KC_BTN1);
+        //     }
+        // }
+
+        if(isWaiting){
+            if(timer_elapsed(timer) < wait_time)
             {
-                register_code16(KC_BTN1);
-                unregister_code16(KC_BTN1);
+                return;
             }
+            isWaiting = false;
+            if(isClicking)
+            {
+                unregister_code16(KC_BTN1);
+                isClicking = false;
+            }
+            return;
+	    }
+        if(rem_words == 0 && rem_letters ==0)
+        {
+            //szekvencia vége
+            wait_time = randomRange(5000, 80000);
+            timer = timer_read();
+            isWaiting = true;
+            rem_words = randomRange(2, 15);
+            rem_letters = randomRange(2,15);
+            return;
+        }
+
+        if(rem_letters ==0)
+        {
+            //szó vége
+            SEND_STRING(" ");
+            wait_time = randomRange(150, 700);
+            timer = timer_read();
+            isWaiting = true;
+            rem_letters = randomRange(2,15);
+            rem_words--;
+
+            if(randomRange(0, 5)% 5 == 2)
+            {
+                isClicking = true;
+                isWaiting = true;
+                wait_time = randomRange(20, 50);
+                timer = timer_read();
+                register_code16(KC_BTN1);
+            }
+            return;
+
+        }
+        else
+        {
+            //betü küldése
+            tap_random_base64();
+            wait_time = randomRange(100, 700);
+            isWaiting = true;
+            timer = timer_read();
+            rem_letters--;
+
         }
     }
 }
