@@ -9,10 +9,14 @@ enum custom_keycodes {
     LAYER1,
     JC_ON,
     JC_OFF,
-    JC_MIND,
-    JC_MINU,
-    JC_MAXD,
-    JC_MAXU,
+    JC_MINWD,
+    JC_MINWU,
+    JC_MAXWD,
+    JC_MAXWU,
+    JC_MINSD,
+    JC_MINSU,
+    JC_MAXSD,
+    JC_MAXSU
 };
 
 enum {
@@ -78,27 +82,27 @@ qk_tap_dance_action_t tap_dance_actions[] = {
  KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_RALT, MO(1), KC_APP, KC_RCTL, KC_LEFT, KC_DOWN, KC_RGHT, KC_P0, KC_PDOT),
 
 [_LAYER1] = LAYOUT_all(RESET, KC_MPLY, KC_MSTP, KC_MPRV, KC_MNXT, KC_MUTE, KC_VOLD, KC_VOLU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
-JC_ON, JC_OFF, JC_MIND, JC_MINU, JC_MAXD, JC_MAXU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+JC_ON, JC_OFF, JC_MINWD, JC_MINWU, JC_MAXWD, JC_MAXWU, JC_MINSD, JC_MINSU, JC_MAXSD, JC_MAXSU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 KC_TRNS, KC_TGUI, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS)
 
 };
 
-uint32_t min_time = 2000;
-uint32_t max_time = 5000;
-uint32_t step = 100;
-static uint16_t key_timer;
-uint32_t wait = 2000;
+uint8_t wordMin = 2;
+uint8_t wordMax = 15;
+uint8_t SentenceMin = 2;
+uint8_t SentenceMax = 15;
 char val_to_write[20];
+
 bool is_jcMacroActive = false;
-
-
 bool isWaiting = false;
 bool isClicking = false;
+
 uint8_t rem_words = 10;
 uint8_t rem_letters = 20;
+
 uint32_t wait_time;
-static uint16_t timer;
+static uint32_t timer;
 
 int randomRange(int lower, int upper)
 {
@@ -111,40 +115,73 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case JC_ON:
             if (record->event.pressed) {
                 is_jcMacroActive = true;
-                key_timer = timer_read();
                 SEND_STRING("JON");
             }
         break;
 
-        case JC_MINU:
+        case JC_MINWU:
+            if (record->event.pressed && wordMin+1<wordMax) {
+                wordMin++;
+                SEND_STRING("JWMI: ");
+                SEND_STRING( itoa(wordMin, val_to_write, 10));
+            }
+        break;
+
+        case JC_MINWD:
+            if (record->event.pressed && wordMin>1) {
+                wordMin--;
+                SEND_STRING("JWMI:");
+                SEND_STRING( itoa(wordMin, val_to_write, 10));
+            }
+        break;
+
+          case JC_MAXWU:
             if (record->event.pressed) {
-                min_time+=step;
-                SEND_STRING("JMI: ");
-                SEND_STRING( itoa(min_time, val_to_write, 10));
+                wordMax++;
+                SEND_STRING("JWMA:");
+                SEND_STRING( itoa(wordMax, val_to_write, 10));
             }
         break;
 
-        case JC_MIND:
-            if (record->event.pressed && min_time>step) {
-                min_time-=step;
-                SEND_STRING("JMI:");
-                SEND_STRING( itoa(min_time, val_to_write, 10));
+        case JC_MAXWD:
+            if (record->event.pressed && wordMax>wordMin+2) {
+                wordMax--;
+                SEND_STRING("JWMA: ");
+                SEND_STRING( itoa(wordMax, val_to_write, 10));
             }
         break;
 
-          case JC_MAXU:
+//word
+
+          case JC_MINSU:
+            if (record->event.pressed && SentenceMin+1<SentenceMax) {
+                SentenceMin++;
+                SEND_STRING("JSMI: ");
+                SEND_STRING( itoa(SentenceMin, val_to_write, 10));
+            }
+        break;
+
+        case JC_MINSD:
+            if (record->event.pressed && SentenceMin>1) {
+                SentenceMin--;
+                SEND_STRING("JSMI:");
+                SEND_STRING( itoa(SentenceMin, val_to_write, 10));
+            }
+        break;
+
+          case JC_MAXSU:
             if (record->event.pressed) {
-                max_time+=step*10;
-                SEND_STRING("JMA:");
-                SEND_STRING( itoa(max_time, val_to_write, 10));
+                SentenceMax++;
+                SEND_STRING("JSMA:");
+                SEND_STRING( itoa(SentenceMax, val_to_write, 10));
             }
         break;
 
-        case JC_MAXD:
-            if (record->event.pressed && max_time>min_time+step*10) {
-                max_time-=step*10;
-                SEND_STRING("JMA: ");
-                SEND_STRING( itoa(max_time, val_to_write, 10));
+        case JC_MAXSD:
+            if (record->event.pressed && SentenceMax>SentenceMin+2) {
+                SentenceMax--;
+                SEND_STRING("JSMA: ");
+                SEND_STRING( itoa(SentenceMax, val_to_write, 10));
             }
         break;
 
@@ -164,22 +201,9 @@ void housekeeping_task_kb(void)
 {
      if(is_jcMacroActive)
     {
-        // if(timer_elapsed(key_timer) > wait)
-        // {
-        //     tap_random_base64();
-        //     key_timer = timer_read();
-
-        //     uint32_t randomMod = (max_time-min_time);
-        //     wait = (rand() % randomMod)+min_time;
-        //     if(rand()%5==0)
-        //     {
-        //         register_code16(KC_BTN1);
-        //         unregister_code16(KC_BTN1);
-        //     }
-        // }
 
         if(isWaiting){
-            if(timer_elapsed(timer) < wait_time)
+            if(timer_elapsed32(timer) < wait_time)
             {
                 return;
             }
@@ -195,10 +219,11 @@ void housekeeping_task_kb(void)
         {
             //szekvencia vége
             wait_time = randomRange(5000, 80000);
-            timer = timer_read();
+            SEND_STRING( itoa(wait_time/1000, val_to_write, 10));
+            timer = timer_read32();
             isWaiting = true;
             rem_words = randomRange(2, 15);
-            rem_letters = randomRange(2,15);
+            rem_letters = randomRange(wordMin,wordMax);
             return;
         }
 
@@ -206,10 +231,10 @@ void housekeeping_task_kb(void)
         {
             //szó vége
             SEND_STRING(" ");
-            wait_time = randomRange(150, 700);
-            timer = timer_read();
+            wait_time = randomRange(100, 1500);
+            timer = timer_read32();
             isWaiting = true;
-            rem_letters = randomRange(2,15);
+            rem_letters = randomRange(wordMin,wordMax);
             rem_words--;
 
             if(randomRange(0, 5)% 5 == 2)
@@ -217,7 +242,8 @@ void housekeeping_task_kb(void)
                 isClicking = true;
                 isWaiting = true;
                 wait_time = randomRange(20, 50);
-                timer = timer_read();
+                timer = timer_read32();
+                SEND_STRING("cli");
                 register_code16(KC_BTN1);
             }
             return;
@@ -227,9 +253,9 @@ void housekeeping_task_kb(void)
         {
             //betü küldése
             tap_random_base64();
-            wait_time = randomRange(100, 700);
+            wait_time = randomRange(30, 1000);
             isWaiting = true;
-            timer = timer_read();
+            timer = timer_read32();
             rem_letters--;
 
         }
