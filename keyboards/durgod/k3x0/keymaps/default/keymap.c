@@ -9,16 +9,20 @@ enum custom_keycodes {
     LAYER1,
     JC_ON,
     JC_OFF,
-    JC_MINWD,
-    JC_MINWU,
-    JC_MAXWD,
-    JC_MAXWU,
-    JC_MINSD,
-    JC_MINSU,
-    JC_MAXSD,
-    JC_MAXSU,
+    JC_MINWD,    //jc min word letter count --
+    JC_MINWU,    //jc min word letter count ++
+    JC_MAXWD,    //jc max word letter count --
+    JC_MAXWU,    //jc max word letter count ++
+    JC_MINSD,    //jc min sentence word count --
+    JC_MINSU,    //jc min sentence word count ++
+    JC_MAXSD,    //jc max sentence word count --
+    JC_MAXSU,    //jc max sentence word count ++
     JC_MAXWAITU,
     JC_MAXWAITD,
+    JC_MINWAITU,
+    JC_MINWAITD,
+    JC_RATIOU,
+    JC_RATIOD,
     TEST
 };
 
@@ -86,7 +90,7 @@ qk_tap_dance_action_t tap_dance_actions[] = {
 
 [_LAYER1] = LAYOUT_all(RESET, KC_MPLY, KC_MSTP, KC_MPRV, KC_MNXT, KC_MUTE, KC_VOLD, KC_VOLU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 JC_ON, JC_OFF, JC_MINWD, JC_MINWU, JC_MAXWD, JC_MAXWU, JC_MINSD, JC_MINSU, JC_MAXSD, JC_MAXSU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
-TEST, JC_MAXWAITD, JC_MAXWAITU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+TEST, JC_RATIOD, JC_RATIOU, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
 KC_TRNS, KC_TGUI, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS)
@@ -99,10 +103,13 @@ uint8_t mode;
 #define clicking 1
 #define mouseMaxMove 10
 
-uint8_t wordMin = 2;
-uint8_t wordMax = 15;
+uint8_t wordMinLetters = 2;
+uint8_t wordMaxLetters = 8;
 uint8_t SentenceMin = 2;
-uint8_t SentenceMax = 15;
+uint8_t SentenceMax = 8;
+uint8_t clickMin = 2;
+uint8_t clickMax = 15;
+uint8_t clickSentenceRatio = 7;
 char val_to_write[20];
 
 bool is_jcMacroActive = false;
@@ -112,15 +119,60 @@ bool isBigClick = false;
 
 uint8_t rem_words = 10;
 uint8_t rem_letters = 20;
+uint8_t rem_clicks = 0;
 
 uint32_t wait_time;
-uint32_t wait_time_min = 5000;
-uint32_t wait_time_max = 150000;
+uint32_t waitTimeMinSentence = 5*1000;
+uint32_t waitTimeMaxSentence = 30*1000;
+uint32_t waitTimeMinClick = 5*1000;
+uint32_t waitTimeMaxClick = 30*1000;
+
 static uint32_t timer;
 
 void MouseMoveLeftRight(void);
 void MouseMoveUpDown(void);
 void Clicking(void);
+void LogClickSentenceRatio(void);
+
+void LogClickSentenceRatio()
+{
+    switch(clickSentenceRatio)
+    {
+        case 0:
+            SEND_STRING("R0");
+            break;
+        case 1:
+            SEND_STRING("R1");
+            break;
+        case 2:
+            SEND_STRING("R2");
+            break;
+        case 3:
+            SEND_STRING("R3");
+            break;
+        case 4:
+            SEND_STRING("R4");
+            break;
+        case 5:
+            SEND_STRING("R5");
+            break;
+        case 6:
+            SEND_STRING("R6");
+            break;
+        case 7:
+            SEND_STRING("R7");
+            break;
+        case 8:
+            SEND_STRING("R8");
+            break;
+        case 9:
+            SEND_STRING("R9");
+            break;
+        case 10:
+            SEND_STRING("R10");
+            break;
+    }
+}
 
 int randomRange(int lower, int upper)
 {
@@ -139,25 +191,40 @@ void wait(uint32_t waitTime)
 void MouseSend(uint16_t keycode)
 {
     register_code16(keycode);
-    wait(50);
+    switch(keycode)
+    {
+        case KC_MS_UP ... KC_MS_DOWN:
+            wait(500);
+        break;
+        default:
+            wait(50);
+        break;
+    }
+
     unregister_code16(keycode);
     wait(50);
 }
 
 void MouseMoveLeftRight()
 {
-    MouseSend(KC_BTN1);
     int moveCount = randomRange(1, mouseMaxMove);
     for(uint8_t i; i<=moveCount;i++ )
     {
         MouseSend(KC_MS_LEFT);
     }
-    MouseSend(KC_BTN1);
+
      for(uint8_t i; i<=moveCount;i++ )
     {
         MouseSend(KC_MS_RIGHT);
     }
-    MouseSend(KC_BTN1);
+}
+
+void SetWaitTimer (int ms)
+{
+    wait_time = ms;
+    timer = timer_read32();
+    isWaiting = true;
+
 }
 
 
@@ -194,12 +261,6 @@ void Clicking()
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case TEST:
-            if (record->event.pressed) {
-                Clicking();
-            }
-        break;
-
         case JC_ON:
             if (record->event.pressed) {
                 is_jcMacroActive = true;
@@ -208,34 +269,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         break;
 
         case JC_MINWU:
-            if (record->event.pressed && wordMin+1<wordMax) {
-                wordMin++;
+            if (record->event.pressed && wordMinLetters+1<wordMaxLetters) {
+                wordMinLetters++;
                 SEND_STRING("JWMI: ");
-                SEND_STRING( itoa(wordMin, val_to_write, 10));
+                SEND_STRING( itoa(wordMinLetters, val_to_write, 10));
             }
         break;
 
         case JC_MINWD:
-            if (record->event.pressed && wordMin>1) {
-                wordMin--;
+            if (record->event.pressed && wordMinLetters>1) {
+                wordMinLetters--;
                 SEND_STRING("JWMI:");
-                SEND_STRING( itoa(wordMin, val_to_write, 10));
+                SEND_STRING( itoa(wordMinLetters, val_to_write, 10));
             }
         break;
 
           case JC_MAXWU:
             if (record->event.pressed) {
-                wordMax++;
+                wordMaxLetters++;
                 SEND_STRING("JWMA:");
-                SEND_STRING( itoa(wordMax, val_to_write, 10));
+                SEND_STRING( itoa(wordMaxLetters, val_to_write, 10));
             }
         break;
 
         case JC_MAXWD:
-            if (record->event.pressed && wordMax>wordMin+2) {
-                wordMax--;
+            if (record->event.pressed && wordMaxLetters>wordMinLetters+2) {
+                wordMaxLetters--;
                 SEND_STRING("JWMA: ");
-                SEND_STRING( itoa(wordMax, val_to_write, 10));
+                SEND_STRING( itoa(wordMaxLetters, val_to_write, 10));
             }
         break;
           case JC_MINSU:
@@ -270,11 +331,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
         break;
 
-         case JC_MAXWAITU:
+        case JC_MAXWAITU:
             if (record->event.pressed) {
-                wait_time_max+=5000;
+                waitTimeMaxSentence+=5000;
+
                 SEND_STRING("JWAIT: ");
-                SEND_STRING( itoa(wait_time_max, val_to_write, 10));
+                SEND_STRING( itoa(waitTimeMaxSentence, val_to_write, 10));
+
+            }
+        break;
+
+        case JC_RATIOD:
+            if (record->event.pressed && clickSentenceRatio>0) {
+                clickSentenceRatio--;
+                LogClickSentenceRatio();
+            }
+        break;
+
+        case JC_RATIOU:
+            if (record->event.pressed && clickSentenceRatio<10) {
+                clickSentenceRatio++;
+                LogClickSentenceRatio();
             }
         break;
 
@@ -294,7 +371,6 @@ void housekeeping_task_kb(void)
 {
      if(is_jcMacroActive)
     {
-
         if(isWaiting){
             if(timer_elapsed32(timer) < wait_time)
             {
@@ -308,53 +384,64 @@ void housekeeping_task_kb(void)
             }
             return;
 	    }
-        if(rem_words == 0 && rem_letters ==0)
+
+        //szekvencia vége van
+        if(rem_words == 0 && rem_letters == 0 && rem_clicks == 0)
         {
-            //szekvencia vége
-            wait_time = randomRange(wait_time_min, wait_time_max);
-            SEND_STRING( itoa(wait_time/1000, val_to_write, 10));
-            timer = timer_read32();
-            isWaiting = true;
-            rem_words = randomRange(2, 15);
-            rem_letters = randomRange(wordMin,wordMax);
-            if(randomRange(0, 1)==1)
+            //click lesz a beallitott aranyban
+            //r7 => 70% click
+            if(randomRange(1, 10)%10>clickSentenceRatio)
             {
-                Clicking();
+                //click szekvencia jön
+                rem_clicks = randomRange(clickMin, clickMax);
+                rem_words = 0;
+                rem_letters = 0;
+                SEND_STRING("cl");
+            }else
+            {
+                //mondat szekvencia jön
+                rem_words = randomRange(SentenceMin, SentenceMax);
+                rem_letters = randomRange(wordMinLetters,wordMaxLetters);
+                rem_clicks = 0;
+                SEND_STRING("se");
             }
+
+            SetWaitTimer(randomRange(waitTimeMinSentence, waitTimeMaxSentence));
+
+            SEND_STRING( itoa(wait_time/1000, val_to_write, 10));
             return;
         }
 
-        if(rem_letters ==0)
+        if(rem_clicks != 0)
+        {
+            //clickelő fázis van
+            rem_clicks--;
+            MouseSend(KC_BTN1);
+            if(randomRange(0, 1)%1==1)
+            {
+                MouseMoveUpDown();
+
+                return;
+            }
+            MouseMoveLeftRight();
+            return;
+
+        }
+
+        if(rem_letters == 0)
         {
             //szó vége
             SEND_STRING(" ");
-            wait_time = randomRange(100, 1500);
-            timer = timer_read32();
-            isWaiting = true;
-            rem_letters = randomRange(wordMin,wordMax);
+            SetWaitTimer(randomRange(100, 1500));
+            rem_letters = randomRange(wordMinLetters,wordMaxLetters);
             rem_words--;
-
-            if(randomRange(0, 5)% 5 == 2)
-            {
-                isClicking = true;
-                isWaiting = true;
-                wait_time = randomRange(20, 50);
-                timer = timer_read32();
-                SEND_STRING("cli");
-                register_code16(KC_BTN1);
-            }
-            return;
-
         }
         else
         {
             //betü küldése
             tap_random_base64();
-            wait_time = randomRange(30, 1000);
-            isWaiting = true;
-            timer = timer_read32();
+            SetWaitTimer(randomRange(30, 1000));
             rem_letters--;
-
         }
     }
 }
