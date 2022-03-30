@@ -17,6 +17,18 @@ enum planck_keycodes {
 #define CALTDEL LCTL(LALT(KC_DEL))
 #define TSKMGR LCTL(LSFT(KC_ESC))
 
+
+const uint16_t PROGMEM test_combo1[] = {KC_U, KC_I, COMBO_END};
+const uint16_t PROGMEM test_combo2[] = {KC_H, KC_U, COMBO_END};
+const uint16_t PROGMEM test_combo[] = {KC_J, KC_I, COMBO_END};
+const uint16_t PROGMEM test_comb[] = {KC_I, KC_L, COMBO_END};
+combo_t key_combos[COMBO_COUNT] = {
+    COMBO(test_combo1, LSFT(KC_SLSH)),
+    COMBO(test_combo2, LSFT(KC_5)),
+    COMBO(test_combo, LSFT(KC_6)),
+    COMBO(test_comb, LSFT(KC_7)),
+};
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 /* Qwerty

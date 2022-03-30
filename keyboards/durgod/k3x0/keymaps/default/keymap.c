@@ -108,7 +108,7 @@ uint8_t wordMaxLetters = 8;
 uint8_t SentenceMin = 2;
 uint8_t SentenceMax = 8;
 uint8_t clickMin = 2;
-uint8_t clickMax = 15;
+uint8_t clickMax = 30;
 uint8_t clickSentenceRatio = 7;
 char val_to_write[20];
 
@@ -123,9 +123,9 @@ uint8_t rem_clicks = 0;
 
 uint32_t wait_time;
 uint32_t waitTimeMinSentence = 5*1000;
-uint32_t waitTimeMaxSentence = 30*1000;
+uint32_t waitTimeMaxSentence = 110*1000;
 uint32_t waitTimeMinClick = 5*1000;
-uint32_t waitTimeMaxClick = 30*1000;
+uint32_t waitTimeMaxClick = 15*1000;
 
 static uint32_t timer;
 
@@ -390,13 +390,14 @@ void housekeeping_task_kb(void)
         {
             //click lesz a beallitott aranyban
             //r7 => 70% click
-            if(randomRange(1, 10)%10>clickSentenceRatio)
+            if(randomRange(0, 10)%10<clickSentenceRatio)
             {
                 //click szekvencia jön
                 rem_clicks = randomRange(clickMin, clickMax);
                 rem_words = 0;
                 rem_letters = 0;
                 SEND_STRING("cl");
+                SetWaitTimer(randomRange(clickMin, clickMax));
             }else
             {
                 //mondat szekvencia jön
@@ -404,9 +405,10 @@ void housekeeping_task_kb(void)
                 rem_letters = randomRange(wordMinLetters,wordMaxLetters);
                 rem_clicks = 0;
                 SEND_STRING("se");
+                SetWaitTimer(randomRange(waitTimeMinSentence, waitTimeMaxSentence));
             }
 
-            SetWaitTimer(randomRange(waitTimeMinSentence, waitTimeMaxSentence));
+
 
             SEND_STRING( itoa(wait_time/1000, val_to_write, 10));
             return;
@@ -416,16 +418,18 @@ void housekeeping_task_kb(void)
         {
             //clickelő fázis van
             rem_clicks--;
-            MouseSend(KC_BTN1);
-            if(randomRange(0, 1)%1==1)
-            {
-                MouseMoveUpDown();
+            MouseSend(KC_MS_WH_UP);
+            wait(randomRange(100, 1000));
+            MouseSend(KC_MS_WH_DOWN);
+            // if(randomRange(0, 1)%1==1)
+            // {
+            //     MouseMoveUpDown();
 
-                return;
-            }
-            MouseMoveLeftRight();
+            //     return;
+            // }
+            // MouseMoveLeftRight();
+            // return;
             return;
-
         }
 
         if(rem_letters == 0)
